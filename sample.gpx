@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<gpx creator="Mobile Action http://www.mobileaction.com/" version="1.0" xmlns="http://www.topografix.com/GPX/1/0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd">
+  <trk>
+    <name>2010-08-15 (Anjali leaving)(1)</name>
+    <desc>Color:004000ff</desc>
+    <trkseg>
+      <trkpt lat="52.213631" lon="0.143268">
+        <ele>4.330000</ele>
+        <time>2010-08-11T15:05:58Z</time>
+        <speed>0.00</speed>
+      </trkpt>
+      <trkpt lat="52.213631" lon="0.143268">
+        <ele>4.330000</ele>
+        <time>2010-08-11T15:06:40Z</time>
+        <speed>17.32</speed>
+      </trkpt>
+      <trkpt lat="52.213596" lon="0.143240">
+        <ele>4.660000</ele>
+        <time>2010-08-11T15:06:41Z</time>
+        <speed>16.88</speed>
+      </trkpt>
+      <trkpt lat="52.213551" lon="0.143213">
+        <ele>4.320000</ele>
+        <time>2010-08-11T15:06:42Z</time>
+        <speed>16.99</speed>
+      </trkpt>
+      <trkpt lat="52.213520" lon="0.143187">
+        <ele>5.450000</ele>
+        <time>2010-08-11T15:06:43Z</time>
+        <speed>16.92</speed>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>  
