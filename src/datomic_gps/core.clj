@@ -9,7 +9,7 @@
 ;; Init database
 
 (def uri "datomic:mem://xml")
-(def uri "datomic:free://localhost:4334/xml")
+;;(def uri "datomic:free://localhost:4334/xml")
 
 (d/delete-database uri)
 (d/create-database uri)
@@ -23,10 +23,7 @@
 
 (def xml (parse  "sample.gpx"))
 
-(def data (xml->tx xml))
-
-(def t (transact conn data))
-
+(transact-xml conn xml)
 
 ;; Play with data in database
 
@@ -57,20 +54,18 @@
                xml-rules))
 
 
-;; Now load some big data
-
-(def big-xml (parse "C:\\Users\\ipd21\\Documents\\My Dropbox\\GPX Tracks\\2009-12-18 (Moving House).gpx"))
-
-(def big-data (xml->tx big-xml))
-
-(def t (transact conn big-data))
-
-
 ;; Now load some huge data
 
-(def huge-xml (parse "C:\\Users\\ipd21\\Documents\\My Dropbox\\GPX Tracks\\2010-10-12 (Lakes and Home for Helen's Birthday).gpx"))
+(def huge-xml (parse "d:\\Dropbox\\GPX Tracks\\2010-10-12 (Lakes and Home for Helen's Birthday).gpx"))
 
-(transact-xml conn huge-xml)
-;;(def huge-data (xml->tx huge-xml))
+(time
+ (def gpx-root-entity (transact-xml conn huge-xml)))
 
-;;(def t (transact conn huge-data))
+(def first-trk (first (tracks conn gpx-root-entity))))
+
+(def pts (trackpoints conn first-trk))
+
+(def trk-start-time (:time (first pts)))
+(def trk-end-time (:time (last pts)))
+
+(def duration-secs (/ (- (.getTime trk-end-time) (.getTime trk-start-time)) 1000))

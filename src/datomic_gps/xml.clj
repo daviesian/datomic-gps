@@ -46,27 +46,6 @@
      [?c :xml/tag ?childtag]
      [?c :xml/value ?val]]])
 
-;; This is great for small XML structures.
-;; Unfortunately, datomic seems to choke on a single 300Mb transaction.
-(defn xml->tx
-  ([xml] (xml->tx xml nil))
-  ([xml parent-id]
-     (let [new-id (d/tempid :db.part/user)]
-       (if (map? xml )
-         (take-while identity (apply concat [(merge {:db/id new-id
-                                                     :xml/tag (:tag xml)}
-                                                    (when parent-id
-                                                      {:xml/_child parent-id}))]
-                                     (concat
-                                      (when (:attrs xml)
-                                        [(map (fn [[attr value]]
-                                                {:db/id (d/tempid :db.part/user)
-                                                 :xml.attribute/name attr
-                                                 :xml.attribute/value value
-                                                 :xml/_attribute new-id}) (:attrs xml))])
-                                      (map #(xml->tx % new-id) (:content xml)))))
-         [[:db/add parent-id :xml/value xml]]))))
-
 
 (defn transact-xml
   ([conn xml] (transact-xml conn xml nil))
@@ -86,4 +65,5 @@
        (doseq [c (:content xml)]
          (if (map? c)
            (transact-xml conn c actual-id)
-           @(d/transact conn [[:db/add actual-id :xml/value c]]))))))
+           @(d/transact conn [[:db/add actual-id :xml/value c]])))
+       actual-id)))
