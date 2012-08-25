@@ -8,13 +8,15 @@
 
 ;; Init database
 
-(def uri "datomic:mem://xml")
-;;(def uri "datomic:free://localhost:4334/xml")
+;;(def uri "datomic:mem://xml")
+(def uri "datomic:free://localhost:4334/gpx")
 
-(d/delete-database uri)
+
+(try (d/delete-database uri) (catch RuntimeException e))
 (d/create-database uri)
 
 (def conn (d/connect uri))
+
 
 (def t (transact conn xml-schema))
 
@@ -59,7 +61,11 @@
 (def huge-xml (parse "d:\\Dropbox\\GPX Tracks\\2010-10-12 (Lakes and Home for Helen's Birthday).gpx"))
 
 (time
- (def gpx-root-entity (transact-xml conn huge-xml)))
+ (def gpx-root-entity (batch-transact-xml conn 1000 [[nil [huge-xml]]])))
+
+
+
+
 
 (def first-trk (first (tracks conn gpx-root-entity))))
 
