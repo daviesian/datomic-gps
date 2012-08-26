@@ -24,6 +24,15 @@
     (catch Exception e (pprint e))
     (catch Error e (pprint e))))
 
+(defmacro defn-db [name ident [& args] & body]
+  `(def ~name {:db/id (d/tempid :db.part/db)
+              :db/ident ~ident
+              :db/fn (d/function '{:lang "clojure"
+                                   :params ~args
+                                   :code (do ~@body)})}))
+
+
+
 (defn parse-date [s]
   (read-string (str "#inst \"" s "\"")))
 
@@ -55,3 +64,18 @@
                         [?trkpt :xml/child ?t3] [?t3 :xml/tag :speed] [?t3 :xml/value ?speed]]
                        (db conn)
                        trk-id))))
+
+(defn ^:dynamic *worker-monitor*)
+
+(defn monitor-worker [desc]
+  (let [callback-data (atom {:percent-done 0
+                             :message ""})
+        progress-callback (fn [percent-done message]
+                            (reset! callback-data {:percent-done percent-done
+                                                   :message message}))]
+    (add-watch callback-data :monitor (fn [k r old new]
+                                        (println (:message new) "  |  " (:percent-done new) "%")))
+
+    (println)
+    (println desc)
+    progress-callback))

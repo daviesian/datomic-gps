@@ -2,6 +2,7 @@
   (:use [datomic.api :only [q db] :as d]
         [datomic-gps.helpers]
         [datomic-gps.xml]
+        [datomic-gps.gpx]
         [clojure.pprint]
         [clojure.xml]))
 
@@ -19,13 +20,13 @@
 
 
 (def t (transact conn xml-schema))
-
+(def t (transact conn gpx-schema))
+(def t (transact conn gpx-fns))
 
 ;; Load data into database
 
-(def xml (parse  "sample.gpx"))
 
-(transact-xml conn xml)
+(def gpx-root-entity (import-gpx-file conn "sample.gpx"))
 
 ;; Play with data in database
 
@@ -58,16 +59,12 @@
 
 ;; Now load some huge data
 
-(def huge-xml (parse "d:\\Dropbox\\GPX Tracks\\2010-10-12 (Lakes and Home for Helen's Birthday).gpx"))
-
 (time
- (def gpx-root-entity (batch-transact-xml conn 1000 [[nil [huge-xml]]])))
+ (def gpx-root-entity (import-gpx-file conn "d:\\Dropbox\\GPX Tracks\\2010-10-12 (Lakes and Home for Helen's Birthday).gpx")))
 
 
 
-
-
-(def first-trk (first (tracks conn gpx-root-entity))))
+(def first-trk (first (tracks conn gpx-root-entity)))
 
 (def pts (trackpoints conn first-trk))
 
