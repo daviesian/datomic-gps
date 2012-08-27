@@ -1,6 +1,10 @@
 (ns datomic-gps.helpers
   (:use [datomic.api :only [q db] :as d]
-        [clojure.pprint]))
+        [clojure.pprint]
+        [seesaw.core]))
+
+(native!)
+
 
 ;; A macro to associate returned values with their variable names in the query.
 ;; Works just like (datomic.api/q ...) except datalog should not be quoted.
@@ -68,13 +72,31 @@
 (defn ^:dynamic *worker-monitor*)
 
 (defn monitor-worker [desc]
-  (let [callback-data (atom {:percent-done 0
-                             :message ""})
-        progress-callback (fn [percent-done message]
-                            (reset! callback-data {:percent-done percent-done
-                                                   :message message}))]
+  (let [callback-data     (atom {:percent-done 0
+                                 :message ""})
+
+        p-bar             (progress-bar :paint-string? false :indeterminate? true)
+        f                 (frame :title desc
+                                 :content p-bar
+                                 :size [640 :by 70]
+                                 :resizable? false
+                                 :visible? true
+                                 :on-close :dispose)
+        progress-callback (fn
+                            ([] (remove-watch callback-data :monitor)
+                               (hide! f))
+                            ([percent-done message]
+                               (reset! callback-data {:percent-done percent-done
+                                                      :message message})))]
+
     (add-watch callback-data :monitor (fn [k r old new]
-                                        (println (:message new) "  |  " (:percent-done new) "%")))
+                                        (let [v (:percent-done new)]
+                                          (config! p-bar :indeterminate? (= v -1))
+                                          (config! p-bar :paint-string? (not= v -1))
+                                          (config! p-bar :value v)
+                                          (config! f :title (:message new)))
+                                        ;;(println (:message new) "  |  " (:percent-done new) "%")
+                                        ))
 
     (println)
     (println desc)

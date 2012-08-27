@@ -61,7 +61,7 @@
   (binding [*inserted-tag-count* (atom 0)
             *worker-monitor* (monitor-worker "Importing GPX File...")]
     (when *worker-monitor*
-      (#'*worker-monitor* 0 "Reading XML"))
+      (#'*worker-monitor* -1 "Reading XML"))
     (let [xml             (parse file-name)
           tag-count       (count-tags xml)
           file            (java.io.File. file-name)
@@ -74,16 +74,17 @@
                                        (Thread/sleep 1000)
                                        (when *worker-monitor*
                                          (#'*worker-monitor* (int (* 100 (/ @*inserted-tag-count* tag-count)))
-                                                             (str "Inserted tags: " @*inserted-tag-count* " of " tag-count)))))))
+                                                             (str "Inserting XML")))))))
           gpx-id          (try (batch-transact-xml conn 1000 [[nil [xml]]])
                                (finally (future-cancel progress-logger)))]
       (when *worker-monitor*
-        (#'*worker-monitor* 100 "Caching track details"))
+        (#'*worker-monitor* -1 "Caching track details"))
       (transact conn [[:db/add gpx-id :gpx/fileName (.getName file)]
                       [:db/add gpx-id :gpx/fileModifiedTime (java.util.Date. (.lastModified file))]
                       [:gpx/cacheTrackDetails gpx-id]])
       (when *worker-monitor*
-        (#'*worker-monitor* 100 "Done"))
+        (#'*worker-monitor* -1 "Done")
+        (#'*worker-monitor*))
       gpx-id)))
 
 
