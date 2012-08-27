@@ -13,11 +13,13 @@
    {:db/id (d/tempid :db.part/db)
     :db/ident :xml/attribute
     :db/valueType :db.type/ref
+    :db/isComponent true
     :db/cardinality :db.cardinality/many
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
     :db/ident :xml/child
     :db/valueType :db.type/ref
+    :db/isComponent true
     :db/cardinality :db.cardinality/many
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
