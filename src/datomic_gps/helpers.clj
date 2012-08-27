@@ -84,6 +84,7 @@
                                  :on-close :dispose)
         progress-callback (fn
                             ([] (remove-watch callback-data :monitor)
+                               (println "Finished.")
                                (hide! f))
                             ([percent-done message]
                                (reset! callback-data {:percent-done percent-done
