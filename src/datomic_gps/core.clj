@@ -9,8 +9,8 @@
 
 ;; Init database
 
-;;(def uri "datomic:mem://xml")
-(def uri "datomic:free://localhost:4334/gpx")
+(def uri "datomic:mem://xml")
+;;(def uri "datomic:free://localhost:4334/gpx")
 
 
 (try (d/delete-database uri) (catch RuntimeException e))
@@ -60,7 +60,7 @@
 ;; Now load some huge data
 
 (time
- (def gpx-root-entity (import-gpx-file conn "d:\\Dropbox\\GPX Tracks\\2010-10-12 (Lakes and Home for Helen's Birthday).gpx")))
+ (def gpx-root-entity (import-gpx-file conn "C:\\Users\\ipd21\\Documents\\My Dropbox\\GPX Tracks\\2010-06-21 (Punting and Summer X).gpx")))
 
 
 
@@ -72,3 +72,13 @@
 (def trk-end-time (:time (last pts)))
 
 (def duration-secs (/ (- (.getTime trk-end-time) (.getTime trk-start-time)) 1000))
+
+
+
+(defn primes [up-to]
+  (reduce (fn [primes-so-far n]
+            (if (every? #(not= 0 (mod n %)) primes-so-far)
+              (conj primes-so-far n)
+              primes-so-far))
+          []
+          (range 2 up-to)))
