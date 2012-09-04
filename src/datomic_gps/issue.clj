@@ -30,15 +30,15 @@
 
 
 (try
-  (println (q '[:find ?e ?cs1  :in $ % :where
-                [hasCategory ?e "news"]
-                [hasCategory ?e "food"]
-                [allCatsExcept ?e "food" ?cs1]
-                [allCatsExcept ?e "news" ?cs2]]
-              (db conn)
-              '[[[hasCategory ?e ?c]
-                 [?e :community/category ?c]]
-                [[allCatsExcept ?e ?ex ?cs]
-                 [?e :community/category ?cs]
-                 [(!= ?ex ?cs)]]]))
+  (pprint (map #(nth % 2) (q '[:find ?e ?cs1 ?cs2  :in $ % :where
+                           [hasCategory ?e "news"]
+                           [hasCategory ?e "food"]
+                           [allCatsExcept ?e "food" ?cs1]
+                           [allCatsExcept ?e "news" ?cs2]]
+                         (db conn)
+                         '[[[hasCategory ?e ?c]
+                            [?e :community/category ?c]]
+                           [[allCatsExcept ?e ?ex ?cs]
+                            [?e :community/category ?cs]
+                            [(!= ?ex ?cs)]]])))
   (catch Exception e (pprint e)))

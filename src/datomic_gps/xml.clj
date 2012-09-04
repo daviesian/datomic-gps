@@ -43,14 +43,15 @@
     :db.install/_partition :db.part/db}])
 
 (def xml-rules
-  '[[(attrval ?node ?attr-name ?val)
+  '[[(attrVal ?node ?attr-name ?val)
      [?node :xml/attribute ?a-node]
      [?a-node :xml.attribute/name ?attr-name]
      [?a-node :xml.attribute/value ?val]]
-
-    [(childval ?node ?childtag ?val)
+    [(childNode ?node ?childTag)
      [?node :xml/child ?c]
-     [?c :xml/tag ?childtag]
+     [?c :xml/tag ?childTag]]
+    [(childVal ?node ?childtag ?val)
+     [childNode ?node ?c]
      [?c :xml/value ?val]]])
 
 (defn xml-tag-tx-data [tag temp-id parent-id]

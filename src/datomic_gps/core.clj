@@ -49,10 +49,10 @@
                 :in $ %
                 :where
                 [?tp :xml/tag :trkpt]
-                (attrval ?tp ?a-name1 ?lat) [(= ?a-name1 :lat)]
-                (attrval ?tp ?a-name2 ?lon) [(= ?a-name2 :lon)]
-                (childval ?tp ?cn1 ?time) [(= ?cn1 :time)]
-                (childval ?tp ?cn2 ?speed) [(= ?cn2 :speed)]]
+                (attrVal ?tp :lat ?lat)
+                (attrVal ?tp :lon ?lon)
+                (childVal ?tp :time ?time)
+                (childVal ?tp :speed ?speed)]
                (db conn)
                xml-rules))
 

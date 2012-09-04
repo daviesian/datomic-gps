@@ -112,12 +112,12 @@
 
 (defn tracks [conn gpx-id]
   (map :trk-id (query [:find ?trk-id
-               :in $ ?gpx-id
-               :where
-               [?gpx-id :xml/child ?trk-id]
-               [?trk-id :xml/tag :trk]]
-              (db conn)
-              gpx-id)))
+                       :in $ % ?gpx-id
+                       :where
+                       [childNode ?gpx-id :trk ?trk-id]]
+                      (db conn)
+                      xml-rules
+                      gpx-id)))
 
 (defn trackpoints [conn trk-id]
   (sort-by :time
@@ -128,13 +128,15 @@
                    :ele (Double/parseDouble (:ele %))
                    :speed (Double/parseDouble (:speed %)))
                 (query [:find ?trkpt ?lat ?lon ?time ?speed ?ele
-                        :in $ ?trk
+                        :in $ % ?trk
                         :where
-                        [?trk :xml/child ?trkseg] [?trkseg :xml/child ?trkpt]
-                        [?trkpt :xml/attribute ?a1] [?a1 :xml.attribute/name :lat] [?a1 :xml.attribute/value ?lat]
-                        [?trkpt :xml/attribute ?a2] [?a2 :xml.attribute/name :lon] [?a2 :xml.attribute/value ?lon]
-                        [?trkpt :xml/child ?t1] [?t1 :xml/tag :time] [?t1 :xml/value ?time]
-                        [?trkpt :xml/child ?t2] [?t2 :xml/tag :ele] [?t2 :xml/value ?ele]
-                        [?trkpt :xml/child ?t3] [?t3 :xml/tag :speed] [?t3 :xml/value ?speed]]
+                        [childNode ?trk :trkseg ?trkseg]
+                        [childNode ?trkseg :trkpt ?trkpt]
+                        [attrVal ?trkpt :lat ?lat]
+                        [attrVal ?trkpt :lon ?lon]
+                        [childVal ?trkpt :time ?time]
+                        [childVal ?trkpt :ele ?ele]
+                        [childVal ?trkpt :speed ?speed]]
                        (db conn)
+                       xml-rules
                        trk-id))))
