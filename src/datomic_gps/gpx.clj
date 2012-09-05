@@ -30,8 +30,7 @@
     :db/cardinality :db.cardinality/one
     :db.install/_attribute :db.part/db}])
 
-(defn-db add-inst-attribute :gpx/addInstAttribute [db entity attribute time-string]
-  [[:db/add entity attribute (read-string (str "#inst \"" time-string "\""))]])
+
 
 (defn-db cache-track-details :gpx/cacheTrackDetails [db gpx-id]
   (let [tracks (map first (q '[:find ?trk :in $ ?gpx-id
@@ -54,13 +53,14 @@
                             [:gpx/addInstAttribute trk-id :gpx.track/endTime end-time]]))
                        tracks))))
 
+(defn-db add-inst-attribute :gpx/addInstAttribute [db entity attribute time-string]
+  [[:db/add entity attribute (read-string (str "#inst \"" time-string "\""))]])
+
 (def gpx-fns
   [add-inst-attribute
    cache-track-details])
 
-(let [time-format (java.text.SimpleDateFormat. "yyyy-MM-dd'T'HH:mm:ss'Z'")]
-  (defn parse-time [s]
-    (.parse time-format s)))
+
 
 (defn import-gpx-file [conn file-name]
   (binding [*inserted-tag-count* (atom 0)

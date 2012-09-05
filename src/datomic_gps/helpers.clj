@@ -69,3 +69,7 @@
     (println)
     (println desc)
     progress-callback))
+
+(let [time-format (java.text.SimpleDateFormat. "yyyy-MM-dd'T'HH:mm:ss'Z'")]
+  (defn parse-time [s]
+    (.parse time-format s)))

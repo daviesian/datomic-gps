@@ -3,6 +3,7 @@
         [datomic-gps.helpers]
         [datomic-gps.xml]
         [datomic-gps.gpx]
+        [datomic-gps.worldwind]
         [clojure.pprint]
         [clojure.xml]))
 
@@ -74,6 +75,9 @@
 (def duration-secs (/ (- (.getTime trk-end-time) (.getTime trk-start-time)) 1000))
 
 
+(def world (create-worldwind))
+
+(add-layer world (create-renderable-layer [(create-surface-line pts)]))
 
 (defn primes [up-to]
   (reduce (fn [primes-so-far n]
