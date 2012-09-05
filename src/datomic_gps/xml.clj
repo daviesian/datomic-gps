@@ -47,11 +47,11 @@
      [?node :xml/attribute ?a-node]
      [?a-node :xml.attribute/name ?attr-name]
      [?a-node :xml.attribute/value ?val]]
-    [(childNode ?node ?childTag)
+    [(childNode ?node ?childTag ?c)
      [?node :xml/child ?c]
      [?c :xml/tag ?childTag]]
-    [(childVal ?node ?childtag ?val)
-     [childNode ?node ?c]
+    [(childVal ?node ?childTag ?val)
+     [childNode ?node ?childTag ?c]
      [?c :xml/value ?val]]])
 
 (defn xml-tag-tx-data [tag temp-id parent-id]
