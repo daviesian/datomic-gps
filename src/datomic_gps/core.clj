@@ -61,7 +61,7 @@
 ;; Now load some huge data
 
 (time
- (def gpx-root-entity (import-gpx-file conn "D:\\Dropbox\\GPX Tracks\\2010-06-21 (Punting and Summer X).gpx")))
+ (def gpx-root-entity (import-gpx-file conn "C:\\Users\\ipd21\\Documents\\My Dropbox\\GPX Tracks\\2010-06-21 (Punting and Summer X).gpx")))
 
 
 
@@ -77,7 +77,9 @@
 
 (def world (create-worldwind))
 
-(add-layer world (create-renderable-layer [(create-surface-line pts)]))
+
+
+(add-layer world (create-track-layer  pts))
 
 (defn primes [up-to]
   (reduce (fn [primes-so-far n]
