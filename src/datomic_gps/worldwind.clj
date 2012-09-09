@@ -4,7 +4,7 @@
   (:import [java.awt Dimension Color]
            [gov.nasa.worldwind Configuration WorldWind BasicModel]
            [gov.nasa.worldwind.geom LatLon Position]
-           [gov.nasa.worldwind.event PositionListener]
+           [gov.nasa.worldwind.event PositionListener SelectListener]
            [gov.nasa.worldwind.layers RenderableLayer]
            [gov.nasa.worldwind.render Path SurfacePolyline BasicShapeAttributes Material Path$PositionColors]
            [gov.nasa.worldwind.awt WorldWindowGLCanvas]
@@ -37,16 +37,28 @@
         listener (reify PositionListener
                    (moved [this newPos]
                      (let [newPos (pos (.getPosition newPos))]
-                       (config! window :title (str "Datomic WorldWind | " (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0" (:lat newPos) (:lon newPos)))))))]
+                       (config! window :title (str "Datomic WorldWind | "
+                                                   (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0"
+                                                           (:lat newPos)
+                                                           (:lon newPos)))))))
+        select-listener (reify SelectListener
+                          (selected [this event]
+                            (pprint (bean (.getTopPickedObject event)))))
+        ]
     (enable-layer world "MS Virtual Earth Aerial")
     (.addPositionListener world listener)
+    (.addSelectListener world select-listener)
     (show! window)
     world))
 
 (defn add-layer [ww layer]
   (let [layers (.getLayers (.getModel ww))]
-    (.add layers layer)))
+    (.add layers layer))
+  layer)
 
+(defn remove-layer [ww layer]
+  (let [layers (.getLayers (.getModel ww))]
+    (.remove layers layer)))
 
 
 ;(def world (create-worldwind))
@@ -70,7 +82,7 @@
       (.setAltitudeMode WorldWind/CLAMP_TO_GROUND)
       (.setPositionColors colors)
       (.setFollowTerrain true)
-      (.setShowPositions false)
+      (.setShowPositions true)
       (.setShowPositionsThreshold 200))))
 
 (defn create-renderable-layer [renderables]

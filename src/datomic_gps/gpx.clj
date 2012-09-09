@@ -2,6 +2,7 @@
   (:use [datomic.api :only [q db] :as d]
         [datomic-gps.helpers]
         [datomic-gps.xml]
+        [datomic-gps.tracks]
         [clojure.pprint]
         [clojure.xml])
   (:import [java.io.File]
@@ -60,6 +61,39 @@
   [add-inst-attribute
    cache-track-details])
 
+(defn tracks [conn gpx-id]
+  (map :trk-id
+       (sort-by :start-time
+                (query [:find ?trk-id ?start-time
+                        :in $ % ?gpx-id
+                        :where
+                        [childNode ?gpx-id :trk ?trk-id]
+                        [?trk-id :gpx.track/startTime ?start-time]]
+                       (db conn)
+                       xml-rules
+                       gpx-id))))
+
+(defn trackpoints [conn trk-id]
+  (sort-by :time
+           (map #(assoc %
+                   :time (parse-time (:time %))
+                   :lat (Double/parseDouble (:lat %))
+                   :lon (Double/parseDouble (:lon %))
+                   :ele (Double/parseDouble (:ele %))
+                   :speed (Double/parseDouble (:speed %)))
+                (query [:find ?trkpt ?lat ?lon ?time ?speed ?ele
+                        :in $ % ?trk
+                        :where
+                        [childNode ?trk :trkseg ?trkseg]
+                        [childNode ?trkseg :trkpt ?trkpt]
+                        [attrVal ?trkpt :lat ?lat]
+                        [attrVal ?trkpt :lon ?lon]
+                        [childVal ?trkpt :time ?time]
+                        [childVal ?trkpt :ele ?ele]
+                        [childVal ?trkpt :speed ?speed]]
+                       (db conn)
+                       xml-rules
+                       trk-id))))
 
 
 (defn import-gpx-file [conn file-name]
@@ -87,6 +121,21 @@
       (transact conn [[:db/add gpx-id :gpx/fileName (.getName file)]
                       [:db/add gpx-id :gpx/fileModifiedTime (java.util.Date. (.lastModified file))]
                       [:gpx/cacheTrackDetails gpx-id]])
+
+      (when *worker-monitor*
+        (#'*worker-monitor* 0 "Removing duplicate track points"))
+
+      (let [tracks (tracks conn gpx-id)]
+        (doseq [[index track] (map-indexed vector tracks)]
+          (when *worker-monitor*
+            (#'*worker-monitor* (* 100 (/ index (count tracks))) "Removing duplicate track points"))
+          (binding [*removed-points* (atom [])]
+            (remove-duplicate-trkpts (db conn) (trackpoints conn track))
+            (let [chunks (partition-all 1000 @*removed-points*)]
+              (doseq [chunk chunks]
+                (let [tx-data (apply concat (map (partial retract-entity (db conn)) @*removed-points*))]
+                  (transact conn (vec tx-data))))))))
+
       (when *worker-monitor*
         (#'*worker-monitor* -1 "Done")
         (#'*worker-monitor*))
@@ -108,35 +157,3 @@
     (export-gpx-to-file db gpx-id full-path)
     (when (:gpx/fileModifiedTime gpx-entity)
       (.setLastModified (java.io.File. full-path) (.getTime (:gpx/fileModifiedTime gpx-entity))))))
-
-
-(defn tracks [conn gpx-id]
-  (map :trk-id (query [:find ?trk-id
-                       :in $ % ?gpx-id
-                       :where
-                       [childNode ?gpx-id :trk ?trk-id]]
-                      (db conn)
-                      xml-rules
-                      gpx-id)))
-
-(defn trackpoints [conn trk-id]
-  (sort-by :time
-           (map #(assoc %
-                   :time (parse-time (:time %))
-                   :lat (Double/parseDouble (:lat %))
-                   :lon (Double/parseDouble (:lon %))
-                   :ele (Double/parseDouble (:ele %))
-                   :speed (Double/parseDouble (:speed %)))
-                (query [:find ?trkpt ?lat ?lon ?time ?speed ?ele
-                        :in $ % ?trk
-                        :where
-                        [childNode ?trk :trkseg ?trkseg]
-                        [childNode ?trkseg :trkpt ?trkpt]
-                        [attrVal ?trkpt :lat ?lat]
-                        [attrVal ?trkpt :lon ?lon]
-                        [childVal ?trkpt :time ?time]
-                        [childVal ?trkpt :ele ?ele]
-                        [childVal ?trkpt :speed ?speed]]
-                       (db conn)
-                       xml-rules
-                       trk-id))))

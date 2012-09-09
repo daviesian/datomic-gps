@@ -73,3 +73,23 @@
 (let [time-format (java.text.SimpleDateFormat. "yyyy-MM-dd'T'HH:mm:ss'Z'")]
   (defn parse-time [s]
     (.parse time-format s)))
+
+(defn retract-entity [db e]
+  (if (number? e)
+    (retract-entity db (d/entity db e))
+    (let [as (keys e)]
+      (apply concat
+             (for [a as]
+               (let [v          (a e)
+                     many?      (coll? v)
+                     ref?       (instance? datomic.query.EntityMap (if many? (first v) v))
+                     component? (:db/isComponent (d/entity db a))]
+                 (if many?
+                   (concat
+                    (for [vv v]
+                      [:db/retract (:db/id e) a (if ref? (:db/id vv) vv)])
+                    (when (and ref? component?)
+                      (apply concat (for [child v] (retract-entity db child)))))
+                   (concat [[:db/retract (:db/id e) a (if ref? (:db/id v) v)]]
+                           (when (and ref? component?)
+                             (retract-entity db v))))))))))
