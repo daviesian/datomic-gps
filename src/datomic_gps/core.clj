@@ -10,8 +10,7 @@
 
 
 ;; Init database
-
-;;(def uri "datomic:mem://xml")
+(def uri "datomic:mem://xml")
 (def uri "datomic:free://localhost:4334/gpx")
 
 
@@ -62,11 +61,11 @@
 ;; Now load some huge data
 
 (time
- (def gpx-root-entity (import-gpx-file conn "D:\\Dropbox\\GPX Tracks\\2010-06-21 (Punting and Summer X).gpx")))
+ (def gpx-root-entity (import-gpx-file conn "D:\\Dropbox\\GPX Tracks\\2012-09-15 (Sheffield and Bottisham).gpx")))
 
 
 
-(def first-trk (first (tracks conn gpx-root-entity)))
+(def first-trk (nth (tracks conn gpx-root-entity) 0))
 
 (def pts (trackpoints conn first-trk))
 
@@ -75,11 +74,11 @@
 
 (def duration-secs (/ (- (.getTime trk-end-time) (.getTime trk-start-time)) 1000))
 
+(do
+  (def world (create-worldwind))
 
-(def world (create-worldwind))
 
-
-(def layer (add-layer world (create-track-layer pts)))
+  (def layer (add-layer world (create-track-layer pts))))
 
 (remove-layer world layer)
 

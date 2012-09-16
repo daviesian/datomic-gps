@@ -13,7 +13,7 @@
 
 (Configuration/setValue AVKey/INITIAL_LATITUDE 52.205)
 (Configuration/setValue AVKey/INITIAL_LONGITUDE 0.124)
-(Configuration/setValue AVKey/INITIAL_ALTITUDE 7000)
+(Configuration/setValue AVKey/INITIAL_ALTITUDE 10000)
 
 (defn pos [p]
   {:lat (.getDegrees (.getLatitude p))
@@ -27,26 +27,26 @@
                 (-> wwd .getModel .getLayers)))))
 
 (defn create-worldwind []
-  (let [world    (doto (WorldWindowGLCanvas.)
-                   (.setModel (BasicModel.)))
-        window   (frame :title "Datomic WorldWind"
-                        :content (border-panel :center world)
-                        :size [800 :by 600]
-                        :resizable? true
-                        :on-close :dispose)
-        listener (reify PositionListener
-                   (moved [this newPos]
-                     (let [newPos (pos (.getPosition newPos))]
-                       (config! window :title (str "Datomic WorldWind | "
-                                                   (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0"
-                                                           (:lat newPos)
-                                                           (:lon newPos)))))))
+  (let [world           (doto (WorldWindowGLCanvas.)
+                          (.setModel (BasicModel.)))
+        window          (frame :title "Datomic WorldWind"
+                               :content (border-panel :center world)
+                               :size [800 :by 600]
+                               :resizable? true
+                               :on-close :dispose)
+        listener        (reify PositionListener
+                          (moved [this newPos]
+                            (let [newPos (pos (.getPosition newPos))]
+                              (config! window :title (str "Datomic WorldWind | "
+                                                          (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0"
+                                                                  (:lat newPos)
+                                                                  (:lon newPos)))))))
         select-listener (reify SelectListener
                           (selected [this event]
                             (pprint (bean (.getTopPickedObject event)))))
         ]
     (enable-layer world "MS Virtual Earth Aerial")
-    (.addPositionListener world listener)
+    ;;(.addPositionListener world listener)
     (.addSelectListener world select-listener)
     (show! window)
     world))
@@ -75,15 +75,32 @@
     (.setOutlineMaterial attrs (Material. color))
     (SurfacePolyline. attrs (map trkpt->latlon trkpts))))
 
+(defn get-color [r g b]
+  (Color. r g b))
+
+(def get-color-memo (memoize get-color))
+
+(defn rainbow-color [i]
+  "i should be between 0 and 1. Returns Red -> Yellow -> Green"
+  (let [r (if (< i 0.5) 255 (int (* 255 (* 2 (- 1 i)))))
+        g (if (> i 0.5) (int (- 255 (* (- i 0.5) 110))) (int (* 255 (* 2 i))))]
+    (get-color-memo r g 0)))
+
 (defn create-path [trkpts]
-  (let [colors (reify Path$PositionColors
-                 (getColor [this pos ordinal] (Color. 255 0 128)))]
+  (let [max-speed (apply max (map :speed trkpts))
+        cs        (to-array (map #(/ (:speed %) max-speed) trkpts))
+        colors    (reify Path$PositionColors
+                    (getColor [this pos ordinal] (rainbow-color #_(/ (mod ordinal 100) 100) (aget cs ordinal))))
+        attrs (BasicShapeAttributes.)]
+    (doto attrs
+      (.setOutlineWidth 1))
     (doto (Path. (map trkpt->position trkpts))
       (.setAltitudeMode WorldWind/CLAMP_TO_GROUND)
+      (.setAttributes attrs)
       (.setPositionColors colors)
-      (.setFollowTerrain true)
       (.setShowPositions true)
-      (.setShowPositionsThreshold 200))))
+      (.setShowPositionsScale 10)
+      (.setFollowTerrain true))))
 
 (defn create-renderable-layer [renderables]
   (let [layer (RenderableLayer.)]
