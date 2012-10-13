@@ -1,12 +1,12 @@
 (ns datomic-gps.worldwind
   (:use [seesaw.core]
         [clojure.pprint])
-  (:import [java.awt Dimension Color]
+  (:import [java.awt Dimension Color Point Insets]
            [gov.nasa.worldwind Configuration WorldWind BasicModel]
            [gov.nasa.worldwind.geom LatLon Position]
            [gov.nasa.worldwind.event PositionListener SelectListener]
            [gov.nasa.worldwind.layers RenderableLayer]
-           [gov.nasa.worldwind.render Path SurfacePolyline BasicShapeAttributes Material Path$PositionColors]
+           [gov.nasa.worldwind.render Path SurfacePolyline BasicShapeAttributes Material Path$PositionColors ScreenAnnotation]
            [gov.nasa.worldwind.awt WorldWindowGLCanvas]
            [gov.nasa.worldwind.avlist AVKey]
            [gov.nasa.worldwind.layers LatLonGraticuleLayer TerrainProfileLayer]))
@@ -111,3 +111,11 @@
 (defn create-track-layer [trkpts]
   (create-renderable-layer [;(create-surface-line trkpts 10 java.awt.Color/BLUE)
                             (create-path trkpts)]))
+
+(defn screen-annotation []
+  (let [a (ScreenAnnotation. "Hello" (Point. 100 100))]
+    (doto (.getAttributes a)
+      (.setBackgroundColor (Color. (float 1) (float 1) (float 1) (float 0.8)))
+      (.setInsets (Insets. 5 5 5 5))
+      (.setCornerRadius 5))
+    a))

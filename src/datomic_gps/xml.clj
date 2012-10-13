@@ -28,6 +28,11 @@
     :db/cardinality :db.cardinality/one
     :db.install/_attribute :db.part/db}
    {:db/id (d/tempid :db.part/db)
+    :db/ident :xml/order
+    :db/valueType :db.type/long
+    :db/cardinality :db.cardinality/one
+    :db.install/_attribute :db.part/db}
+   {:db/id (d/tempid :db.part/db)
     :db/ident :xml.attribute/name
     :db/valueType :db.type/keyword
     :db/cardinality :db.cardinality/one
@@ -54,9 +59,10 @@
      [childNode ?node ?childTag ?c]
      [?c :xml/value ?val]]])
 
-(defn xml-tag-tx-data [tag temp-id parent-id]
+(defn xml-tag-tx-data [tag order temp-id parent-id]
   (apply concat [(merge {:db/id temp-id
-                         :xml/tag (:tag tag)}
+                         :xml/tag (:tag tag)
+                         :xml/order order}
                         (when parent-id
                           {:xml/_child parent-id})
                         (when (and (first (:content tag)) (not (map? (first (:content tag)))))
@@ -81,10 +87,10 @@
     tags
 
     ;; Transform into a new list of [temp-id tx-data children]
-    (let [tx-units (map (fn [[parent-id tag]]
+    (let [tx-units (map-indexed (fn [idx [parent-id tag]]
                           (let [temp-id (d/tempid :db.part/xml)]
                             [temp-id
-                             (xml-tag-tx-data tag temp-id parent-id)
+                             (xml-tag-tx-data tag idx temp-id parent-id)
                              (if (map? (first (:content tag))) (:content tag) nil)]))
                         tags)]
 
