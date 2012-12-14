@@ -3,6 +3,7 @@
         [datomic-gps.helpers]
         [datomic-gps.xml]
         [datomic-gps.tracks]
+        [datomic-gps.app-state]
         [clojure.pprint]
         [clojure.xml])
   (:import [java.io.File]
@@ -166,3 +167,15 @@
     (export-gpx-to-file db gpx-id full-path)
     (when (:gpx/fileModifiedTime gpx-entity)
       (.setLastModified (java.io.File. full-path) (.getTime (:gpx/fileModifiedTime gpx-entity))))))
+
+;; Find all gpx entities
+
+(defn get-gpx-entities []
+  (query [:find ?file ?gpx
+          :in $ %
+          :where
+          [?gpx :gpx/fileName ?file]]
+         (db @conn) xml-rules))
+
+(defn get-gpx-entity-by-filename [filename]
+  (:gpx (first (query [:find ?gpx :in $ ?fileName % :where [?gpx :gpx/fileName ?fileName]] (db @conn) filename xml-rules))))

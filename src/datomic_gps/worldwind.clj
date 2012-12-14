@@ -1,5 +1,7 @@
 (ns datomic-gps.worldwind
   (:use [seesaw.core]
+        [seesaw.dnd]
+        [datomic-gps.dnd]
         [clojure.pprint])
   (:import [java.awt Dimension Color Point Insets]
            [gov.nasa.worldwind Configuration WorldWind BasicModel]
@@ -25,31 +27,35 @@
    (map #(.setEnabled % true)
         (filter #(= name (.getName %))
                 (-> wwd .getModel .getLayers)))))
+(let [out *out*]
+  (defn create-worldwind []
+    (let [world           (doto (WorldWindowGLCanvas.)
+                            (.setModel (BasicModel.)))
+          window          (frame :title "Datomic WorldWind"
+                                 :content (border-panel :center world)
+                                 :size [800 :by 600]
+                                 :resizable? true
+                                 :on-close :dispose)
+          listener        (reify PositionListener
+                            (moved [this newPos]
+                              (let [newPos (pos (.getPosition newPos))]
+                                (config! window :title (str "Datomic WorldWind | "
+                                                            (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0"
+                                                                    (:lat newPos)
+                                                                    (:lon newPos)))))))
 
-(defn create-worldwind []
-  (let [world           (doto (WorldWindowGLCanvas.)
-                          (.setModel (BasicModel.)))
-        window          (frame :title "Datomic WorldWind"
-                               :content (border-panel :center world)
-                               :size [800 :by 600]
-                               :resizable? true
-                               :on-close :dispose)
-        listener        (reify PositionListener
-                          (moved [this newPos]
-                            (let [newPos (pos (.getPosition newPos))]
-                              (config! window :title (str "Datomic WorldWind | "
-                                                          (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0"
-                                                                  (:lat newPos)
-                                                                  (:lon newPos)))))))
-        select-listener (reify SelectListener
-                          (selected [this event]
-                            (pprint (bean (.getTopPickedObject event)))))
-        ]
-    (enable-layer world "MS Virtual Earth Aerial")
-    ;;(.addPositionListener world listener)
-    (.addSelectListener world select-listener)
-    (show! window)
-    world))
+          select-listener (reify SelectListener
+                            (selected [this event]
+                              (binding [*out* out]
+                                (pprint (bean (.getTopPickedObject event))))))
+
+          ]
+      (enable-layer world "MS Virtual Earth Aerial")
+      ;;(.addPositionListener world listener)
+      (.addSelectListener world select-listener)
+      (.setTransferHandler window (default-transfer-handler :import [file-list-flavor (partial file-list-drop-handler world)]))
+      (show! window)
+      world)))
 
 (defn add-layer [ww layer]
   (let [layers (.getLayers (.getModel ww))]

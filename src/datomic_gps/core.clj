@@ -5,6 +5,7 @@
         [datomic-gps.gpx]
         [datomic-gps.worldwind]
         [datomic-gps.tracks]
+        [datomic-gps.app-state]
         [clojure.pprint]
         [clojure.xml]))
 
@@ -33,17 +34,17 @@
 (try (d/delete-database uri) (catch RuntimeException e))
 (d/create-database uri)
 
-(def conn (d/connect uri))
+(reset! conn (d/connect uri))
 
 
-(def t (transact conn xml-schema))
-(def t (transact conn gpx-schema))
-(def t (transact conn gpx-fns))
+(def t (transact @conn xml-schema))
+(def t (transact @conn gpx-schema))
+(def t (transact @conn gpx-fns))
 
 ;; Load data into database
 
 
-(def gpx-root-entity (import-gpx-file conn "sample.gpx"))
+(def gpx-root-entity (import-gpx-file @conn "sample.gpx"))
 
 ;; Play with data in database
 
@@ -55,7 +56,7 @@
               (attrval ?tp ?a-name1 ?lat) [(= ?a-name1 :lat)]
               (attrval ?tp ?a-name2 ?lon) [(= ?a-name2 :lon)]
               (childval ?tp ?cn1 ?time) [(= ?cn1 :time)]]
-            (db conn)
+            (db @conn)
             xml-rules))
 
 
@@ -70,30 +71,24 @@
                 (attrVal ?tp :lon ?lon)
                 (childVal ?tp :time ?time)
                 (childVal ?tp :speed ?speed)]
-               (db conn)
+               (db @conn)
                xml-rules))
 
 
 ;; Now load some huge data
 
 (time
- (def gpx-root-entity (import-gpx-file conn "D:\\Dropbox\\GPX Tracks\\2012-09-15 (Sheffield and Bottisham).gpx")))
+ (def gpx-root-entity (import-gpx-file @conn "C:\\Users\\ipd21\\Documents\\My Dropbox\\GPX Tracks\\2010-11-06 (Atlantis).gpx")))
 
 
-;; Find all gpx entities
-
-(def gpx-entities (query [:find ?file ?gpx
-                :in $ %
-                :where
-                          [?gpx :gpx/fileName ?file]] (db conn) xml-rules))
 
 (pprint gpx-entities)
 
 ;; Load and display some stuff
 
-(def trk (nth (tracks conn (:gpx (second gpx-entities))) 2))
+(def trk (nth (tracks @conn (:gpx (second gpx-entities))) 2))
 
-(def pts (trackpoints conn trk))
+(def pts (trackpoints @conn trk))
 
 (def trk-start-time (:time (first pts)))
 (def trk-end-time (:time (last pts)))
