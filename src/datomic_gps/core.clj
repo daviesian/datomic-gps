@@ -8,6 +8,22 @@
         [clojure.pprint]
         [clojure.xml]))
 
+(future (println "BEFORE")
+        (Thread/sleep 1000)
+        (println "AFTER"))
+;; Start transactor
+
+(future
+  (println "hi")
+  (let [datomic-dir "c:\\dev\\datomic-free-0.8.3551\\"
+        transactor (.exec (Runtime/getRuntime)
+                          (str datomic-dir "bin\\transactor.cmd " datomic-dir "config\\samples\\free-transactor-template.properties")
+                          nil
+                          (java.io.File. datomic-dir))]
+    (println ">>> Transactor running.") ;; Doesn't work in NREPL right now.
+    (.waitFor transactor)
+    (println ">>> Transactor died.")))
+
 
 ;; Init database
 (def uri "datomic:mem://xml")
@@ -64,10 +80,20 @@
  (def gpx-root-entity (import-gpx-file conn "D:\\Dropbox\\GPX Tracks\\2012-09-15 (Sheffield and Bottisham).gpx")))
 
 
+;; Find all gpx entities
 
-(def first-trk (nth (tracks conn gpx-root-entity) 0))
+(def gpx-entities (query [:find ?file ?gpx
+                :in $ %
+                :where
+                          [?gpx :gpx/fileName ?file]] (db conn) xml-rules))
 
-(def pts (trackpoints conn first-trk))
+(pprint gpx-entities)
+
+;; Load and display some stuff
+
+(def trk (nth (tracks conn (:gpx (second gpx-entities))) 2))
+
+(def pts (trackpoints conn trk))
 
 (def trk-start-time (:time (first pts)))
 (def trk-end-time (:time (last pts)))
@@ -87,7 +113,7 @@
 (def layer (add-layer world
                       (create-track-layer
                        (remove-duplicate-trkpts
-                        (trackpoints conn (second (tracks conn gpx-root-entity)))))))
+                        pts))))
 
 (remove-layer world layer)
 

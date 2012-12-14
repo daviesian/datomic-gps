@@ -95,53 +95,60 @@
                               xml-rules
                               trk-id))))
 
+(defn gpx-file-imported [conn file-name]
+  (not-empty (filter #(= % file-name)
+                     (map :file (query [:find ?file
+                                        :in $ %
+                                        :where
+                                        [?gpx :gpx/fileName ?file]] (db conn) xml-rules)))))
 
 (defn import-gpx-file [conn file-name]
-  (binding [*inserted-tag-count* (atom 0)
-            *worker-monitor* (monitor-worker "Importing GPX File...")]
-    (when *worker-monitor*
-      (#'*worker-monitor* -1 "Reading XML"))
-    (let [xml             (parse file-name)
-          tag-count       (count-tags xml)
-          file            (java.io.File. file-name)
-
-          progress-logger (future
-                            (when *worker-monitor*
-                              (#'*worker-monitor* 0 "Inserting XML"))
-                            (dorun (repeatedly
-                                    #(do
-                                       (Thread/sleep 1000)
-                                       (when *worker-monitor*
-                                         (#'*worker-monitor* (int (* 100 (/ @*inserted-tag-count* tag-count)))
-                                                             (str "Inserting XML")))))))
-          gpx-id          (try (batch-transact-xml conn 1000 [[nil [xml]]])
-                               (finally (future-cancel progress-logger)))]
+  (let [file (java.io.File. file-name)]
+    (when (gpx-file-imported conn (.getName file))
+      (throw (Exception. "GPX File already in database.")))
+    (binding [*inserted-tag-count* (atom 0)
+              *worker-monitor* (monitor-worker "Importing GPX File...")]
       (when *worker-monitor*
-        (#'*worker-monitor* -1 "Caching track details"))
-      (transact conn [[:db/add gpx-id :gpx/fileName (.getName file)]
-                      [:db/add gpx-id :gpx/fileModifiedTime (java.util.Date. (.lastModified file))]
-                      [:gpx/cacheTrackDetails gpx-id]])
+        (#'*worker-monitor* -1 "Reading XML"))
+      (let [xml             (parse file-name)
+            tag-count       (count-tags xml)
+            progress-logger (future
+                              (when *worker-monitor*
+                                (#'*worker-monitor* 0 "Inserting XML"))
+                              (dorun (repeatedly
+                                      #(do
+                                         (Thread/sleep 1000)
+                                         (when *worker-monitor*
+                                           (#'*worker-monitor* (int (* 100 (/ @*inserted-tag-count* tag-count)))
+                                                               (str "Inserting XML")))))))
+            gpx-id          (try (batch-transact-xml conn 1000 [[nil [xml]]])
+                                 (finally (future-cancel progress-logger)))]
+        (when *worker-monitor*
+          (#'*worker-monitor* -1 "Caching track details"))
+        (transact conn [[:db/add gpx-id :gpx/fileName (.getName file)]
+                        [:db/add gpx-id :gpx/fileModifiedTime (java.util.Date. (.lastModified file))]
+                        [:gpx/cacheTrackDetails gpx-id]])
 
-      (when *worker-monitor*
-        (#'*worker-monitor* 0 "Removing duplicate track points"))
+        (when *worker-monitor*
+          (#'*worker-monitor* 0 "Removing duplicate track points"))
 
-      (let [tracks (tracks conn gpx-id)]
-        (doseq [[index track] (map-indexed vector tracks)]
-          (when *worker-monitor*
-            (#'*worker-monitor* (* 100 (/ index (count tracks))) "Removing duplicate track points"))
-          (binding [*removed-points* (atom [])]
-            (let [tps (trackpoints conn track)]
-              (remove-duplicate-trkpts (db conn) tps)
-              (println "Removed" (count @*removed-points*) "duplicate points" (str "(" (int (* 100 (/ (count @*removed-points*) (count tps)))) "%)."))
-              (let [chunks (partition-all 1000 @*removed-points*)]
-                (doseq [chunk chunks]
-                  (let [tx-data (apply concat (map (partial retract-entity (db conn)) @*removed-points*))]
-                    (transact conn (vec tx-data)))))))))
+        (let [tracks (tracks conn gpx-id)]
+          (doseq [[index track] (map-indexed vector tracks)]
+            (when *worker-monitor*
+              (#'*worker-monitor* (* 100 (/ index (count tracks))) "Removing duplicate track points"))
+            (binding [*removed-points* (atom [])]
+              (let [tps (trackpoints conn track)]
+                (remove-duplicate-trkpts (db conn) tps)
+                (println "Removed" (count @*removed-points*) "duplicate points" (str "(" (int (* 100 (/ (count @*removed-points*) (count tps)))) "%)."))
+                (let [chunks (partition-all 1000 @*removed-points*)]
+                  (doseq [chunk chunks]
+                    (let [tx-data (apply concat (map (partial retract-entity (db conn)) @*removed-points*))]
+                      (transact conn (vec tx-data)))))))))
 
-      (when *worker-monitor*
-        (#'*worker-monitor* -1 "Done")
-        (#'*worker-monitor*))
-      gpx-id)))
+        (when *worker-monitor*
+          (#'*worker-monitor* -1 "Done")
+          (#'*worker-monitor*))
+        gpx-id))))
 
 
 (defn export-gpx-to-file [db gpx-id path]

@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :plugins [[lein-localrepo "0.4.1"]]
   :dependencies [[org.clojure/clojure "1.4.0"]
-                 [com.datomic/datomic-free "0.8.3524"]
+                 [com.datomic/datomic-free "0.8.3551"]
                  [seesaw "1.4.2"]
                  [gov.nasa/worldwind "1.4.0"]
                  [gov.nasa/worldwindx "1.4.0"]
