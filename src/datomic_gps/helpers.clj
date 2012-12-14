@@ -20,6 +20,9 @@
                (q '[~find ~@vars ~@rest] ~@sources))
           (catch Exception e# (pprint e#)))))
 
+(defmacro defn-bound [name args & body]
+  `(def ~name (bound-fn ~args ~@body)))
+
 
 ;; NOTE: transact fails if you give it an enormous seq. Maybe.
 (defn transact [conn tx-data]

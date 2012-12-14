@@ -1,12 +1,14 @@
 (ns datomic-gps.worldwind
   (:use [seesaw.core]
         [seesaw.dnd]
-        [datomic-gps.dnd]
+        [datomic-gps.gpx]
+        [datomic-gps.app-state]
+        [datomic-gps.helpers]
         [clojure.pprint])
   (:import [java.awt Dimension Color Point Insets]
            [gov.nasa.worldwind Configuration WorldWind BasicModel]
            [gov.nasa.worldwind.geom LatLon Position]
-           [gov.nasa.worldwind.event PositionListener SelectListener]
+           [gov.nasa.worldwind.event PositionListener SelectListener SelectEvent]
            [gov.nasa.worldwind.layers RenderableLayer]
            [gov.nasa.worldwind.render Path SurfacePolyline BasicShapeAttributes Material Path$PositionColors ScreenAnnotation]
            [gov.nasa.worldwind.awt WorldWindowGLCanvas]
@@ -27,35 +29,7 @@
    (map #(.setEnabled % true)
         (filter #(= name (.getName %))
                 (-> wwd .getModel .getLayers)))))
-(let [out *out*]
-  (defn create-worldwind []
-    (let [world           (doto (WorldWindowGLCanvas.)
-                            (.setModel (BasicModel.)))
-          window          (frame :title "Datomic WorldWind"
-                                 :content (border-panel :center world)
-                                 :size [800 :by 600]
-                                 :resizable? true
-                                 :on-close :dispose)
-          listener        (reify PositionListener
-                            (moved [this newPos]
-                              (let [newPos (pos (.getPosition newPos))]
-                                (config! window :title (str "Datomic WorldWind | "
-                                                            (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0"
-                                                                    (:lat newPos)
-                                                                    (:lon newPos)))))))
 
-          select-listener (reify SelectListener
-                            (selected [this event]
-                              (binding [*out* out]
-                                (pprint (bean (.getTopPickedObject event))))))
-
-          ]
-      (enable-layer world "MS Virtual Earth Aerial")
-      ;;(.addPositionListener world listener)
-      (.addSelectListener world select-listener)
-      (.setTransferHandler window (default-transfer-handler :import [file-list-flavor (partial file-list-drop-handler world)]))
-      (show! window)
-      world)))
 
 (defn add-layer [ww layer]
   (let [layers (.getLayers (.getModel ww))]
@@ -101,6 +75,7 @@
     (doto attrs
       (.setOutlineWidth 1))
     (doto (Path. (map trkpt->position trkpts))
+      (.setValue "path-trkpts" trkpts)
       (.setAltitudeMode WorldWind/CLAMP_TO_GROUND)
       (.setAttributes attrs)
       (.setPositionColors colors)
@@ -115,8 +90,10 @@
     layer))
 
 (defn create-track-layer [trkpts]
-  (create-renderable-layer [;(create-surface-line trkpts 10 java.awt.Color/BLUE)
-                            (create-path trkpts)]))
+  (doto
+      (create-renderable-layer [ ;(create-surface-line trkpts 10 java.awt.Color/BLUE)
+                                (create-path trkpts)])
+    (.setName "GPX TRACK")))
 
 (defn screen-annotation []
   (let [a (ScreenAnnotation. "Hello" (Point. 100 100))]
@@ -125,3 +102,58 @@
       (.setInsets (Insets. 5 5 5 5))
       (.setCornerRadius 5))
     a))
+
+(defn-bound file-list-drop-handler [world {:keys [data]}]
+  (future
+    (println "DROP " data)
+    (doseq [file data]
+      (let [gpx (or (get-gpx-entity-by-filename (.getName file))
+                    (import-gpx-file @conn (.getPath file)))]
+        (println "GPX ID:" gpx)
+        (let [tracks (tracks @conn gpx)]
+          (doseq [t tracks]
+            (add-layer world (create-track-layer (trackpoints @conn t)))))))))
+
+(defn-bound rollover [event]
+  (when-let [pick-obj (.getTopPickedObject event)]
+    (let [obj (.getObject pick-obj)]
+      (when (and (= (.getEventAction event) (SelectEvent/ROLLOVER))
+                 (= Path (type obj)))
+
+        (let [trkpts (.getValue obj "path-trkpts")]
+          (when-let [ordinal (.getValue pick-obj "gov.nasa.worldwind.avkey.Ordinal") ]
+            (pprint (nth trkpts ordinal))))
+
+        ;;(pprint *out*)
+        ;;(pprint (bean (second (.getObjects event))))
+        ;;(pprint (str "****" (.hasObjects event)))
+        ;;(pprint (.getEntries pick-obj))
+        (flush)))))
+
+(defn create-worldwind []
+  (let [world           (doto (WorldWindowGLCanvas.)
+                          (.setModel (BasicModel.)))
+        window          (frame :title "Datomic WorldWind"
+                               :content (border-panel :center world)
+                               :size [800 :by 600]
+                               :resizable? true
+                               :on-close :dispose)
+        listener        (reify PositionListener
+                          (moved [this newPos]
+                            (let [newPos (pos (.getPosition newPos))]
+                              (config! window :title (str "Datomic WorldWind | "
+                                                          (format "Lat: %.4f\u00B0, Lon: %.4f\u00B0"
+                                                                  (:lat newPos)
+                                                                  (:lon newPos)))))))
+
+        select-listener (reify SelectListener
+                          (selected [this event]
+                            (#'rollover event)))
+
+        ]
+    (enable-layer world "MS Virtual Earth Aerial")
+    (.addPositionListener world listener)
+    (.addSelectListener world select-listener)
+    (.setTransferHandler window (default-transfer-handler :import [file-list-flavor (partial file-list-drop-handler world)]))
+    (show! window)
+    world))
