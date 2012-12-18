@@ -75,26 +75,27 @@
                        gpx-id))))
 
 (defn trackpoints [conn trk-id]
-  (map #(assoc %
-          :time (parse-time (:time %))
-          :lat (Double/parseDouble (:lat %))
-          :lon (Double/parseDouble (:lon %))
-          :ele (Double/parseDouble (:ele %))
-          :speed (Double/parseDouble (:speed %)))
-       (sort-by :order (query [:find ?trkpt ?order ?lat ?lon ?time ?speed ?ele
-                               :in $ % ?trk
-                               :where
-                               [childNode ?trk :trkseg ?trkseg]
-                               [childNode ?trkseg :trkpt ?trkpt]
-                               [?trkpt :xml/order ?order]
-                               [attrVal ?trkpt :lat ?lat]
-                               [attrVal ?trkpt :lon ?lon]
-                               [childVal ?trkpt :time ?time]
-                               [childVal ?trkpt :ele ?ele]
-                               [childVal ?trkpt :speed ?speed]]
-                              (db conn)
-                              xml-rules
-                              trk-id))))
+  (with-distance
+    (map #(assoc %
+            :time (parse-time (:time %))
+            :lat (Double/parseDouble (:lat %))
+            :lon (Double/parseDouble (:lon %))
+            :ele (Double/parseDouble (:ele %))
+            :speed (Double/parseDouble (:speed %)))
+         (sort-by :order (query [:find ?trkpt ?order ?lat ?lon ?time ?speed ?ele
+                                 :in $ % ?trk
+                                 :where
+                                 [childNode ?trk :trkseg ?trkseg]
+                                 [childNode ?trkseg :trkpt ?trkpt]
+                                 [?trkpt :xml/order ?order]
+                                 [attrVal ?trkpt :lat ?lat]
+                                 [attrVal ?trkpt :lon ?lon]
+                                 [childVal ?trkpt :time ?time]
+                                 [childVal ?trkpt :ele ?ele]
+                                 [childVal ?trkpt :speed ?speed]]
+                                (db conn)
+                                xml-rules
+                                trk-id)))))
 
 (defn gpx-file-imported [conn file-name]
   (not-empty (filter #(= % file-name)
@@ -139,6 +140,7 @@
               (#'*worker-monitor* (* 100 (/ index (count tracks))) "Removing duplicate track points"))
             (binding [*removed-points* (atom [])]
               (let [tps (trackpoints conn track)]
+                (reset! last-dropped-trkpts tps)
                 (remove-duplicate-trkpts (db conn) tps)
                 (println "Removed" (count @*removed-points*) "duplicate points" (str "(" (int (* 100 (/ (count @*removed-points*) (count tps)))) "%)."))
                 (let [chunks (partition-all 1000 @*removed-points*)]
