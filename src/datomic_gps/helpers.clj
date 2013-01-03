@@ -3,6 +3,8 @@
         [clojure.pprint]
         [seesaw.core]))
 
+(System/setProperty "gov.nasa.worldwind.app.config.document" "resources\\worldwind.layers.xml")
+
 (native!)
 
 

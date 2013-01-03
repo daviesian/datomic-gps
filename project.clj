@@ -13,5 +13,6 @@
                  [gov.nasa/gluegen-rt "1.4.0"]
                  [gov.nasa/gdal "1.4.0"]
                  [incanter "1.4.0"]
-				 [jahmm "0.6.1"]]
+				 [jahmm "0.6.1"]
+				 ]
   :jvm-opts ["-Xmx1024M" "-Djava.library.path=worldwind-1.4.0"])

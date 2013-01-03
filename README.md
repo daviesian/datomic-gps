@@ -14,6 +14,7 @@ lein localrepo install worldwindx.jar gov.nasa/worldwindx 1.4.0
 lein localrepo install jogl.jar gov.nasa/jogl 1.4.0
 lein localrepo install gluegen-rt.jar gov.nasa/gluegen-rt 1.4.0
 lein localrepo install gdal.jar gov.nasa/gdal 1.4.0
+lein localrepo install jahmm-0.6.1.jar jahmm 0.6.1
 
 ## License
 

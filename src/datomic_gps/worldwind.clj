@@ -14,6 +14,8 @@
            [gov.nasa.worldwind.awt WorldWindowGLCanvas]
            [gov.nasa.worldwind.avlist AVKey]))
 
+
+
 (Configuration/setValue AVKey/INITIAL_LATITUDE 52.205)
 (Configuration/setValue AVKey/INITIAL_LONGITUDE 0.124)
 (Configuration/setValue AVKey/INITIAL_ALTITUDE 10000)
@@ -171,7 +173,7 @@
                                          (when new
                                            (.addAnnotation tooltip-layer new))))
 
-    (enable-layer world "MS Virtual Earth Aerial")
+    (enable-layer world "MS Virtual Earth Roads")
     (add-layer world tooltip-layer)
     (.addPositionListener world listener)
     (.addSelectListener world select-listener)

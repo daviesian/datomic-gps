@@ -42,7 +42,10 @@
 (def t (transact @conn gpx-schema))
 (def t (transact @conn gpx-fns))
 
-(create-worldwind)
+
+
+(def world
+  (create-worldwind))
 
 (comment
   ;; Load data into database
